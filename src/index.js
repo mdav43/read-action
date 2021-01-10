@@ -13,10 +13,10 @@ async function read() {
     const providers = core.getInput("providers")
       ? core.getInput("providers").split(",")
       : isbn._providers;
-    console.log("providers", providers);
+    const imgDir = core.getInput("imgDir");
     core.exportVariable("IssueNumber", number);
     const bookMetadata = await getBook(
-      { date, body, bookIsbn, providers },
+      { date, body, bookIsbn, providers, imgDir },
       fileName
     );
     await writeFile(fileName, bookMetadata);

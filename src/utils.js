@@ -3,6 +3,7 @@ const core = require("@actions/core");
 const yaml = require("js-yaml");
 const YAML = require("json-to-pretty-yaml");
 const isbn = require("node-isbn");
+const https = require("https");
 
 const allowedFields = [
   "title",
@@ -98,11 +99,26 @@ async function getBook(options, fileName) {
     .resolve(bookIsbn)
     .then(async (book) => {
       core.exportVariable("BookTitle", book.title);
-      return await addBook(options, book, fileName);
+      await addBook(options, book, fileName);
+      if (
+        options.imgDir &&
+        book.imageLinks &&
+        (book.imageLinks.smallThumbnail || book.imageLinks.thumbnail)
+      ) {
+        const url = book.imageLinks.smallThumbnail || book.imageLinks.thumbnail;
+        await saveThumbnail(options.imgDir, url);
+      }
+
+      return;
     })
     .catch(async (err) => {
       core.setFailed(`Book (${bookIsbn}) not found: `, err);
     });
+}
+
+async function saveThumbnail(folder, url) {
+  const file = fs.createWriteStream(url);
+  return await https.get(`${folder}${url}`, (response) => response.pipe(file));
 }
 
 async function readFile(fileName) {
