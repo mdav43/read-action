@@ -1,7 +1,4 @@
 on:
-  branches:
-    - '*'
-    - '!main'
   issues:
     types: opened
 
