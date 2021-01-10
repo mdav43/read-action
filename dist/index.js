@@ -9162,6 +9162,7 @@ const core = __webpack_require__(470);
 const yaml = __webpack_require__(414);
 const YAML = __webpack_require__(289);
 const isbn = __webpack_require__(78);
+const https = __webpack_require__(211);
 
 const allowedFields = [
   "title",
@@ -9257,11 +9258,26 @@ async function getBook(options, fileName) {
     .resolve(bookIsbn)
     .then(async (book) => {
       core.exportVariable("BookTitle", book.title);
-      return await addBook(options, book, fileName);
+      await addBook(options, book, fileName);
+      if (
+        options.imgDir &&
+        book.imageLinks &&
+        (book.imageLinks.smallThumbnail || book.imageLinks.thumbnail)
+      ) {
+        const url = book.imageLinks.smallThumbnail || book.imageLinks.thumbnail;
+        await saveThumbnail(options.imgDir, url);
+      }
+
+      return;
     })
     .catch(async (err) => {
       core.setFailed(`Book (${bookIsbn}) not found: `, err);
     });
+}
+
+async function saveThumbnail(folder, url) {
+  const file = fs.createWriteStream(url);
+  return await https.get(`${folder}${url}`, (response) => response.pipe(file));
 }
 
 async function readFile(fileName) {
@@ -10384,10 +10400,10 @@ async function read() {
     const providers = core.getInput("providers")
       ? core.getInput("providers").split(",")
       : isbn._providers;
-    console.log("providers", providers);
+    const imgDir = core.getInput("imgDir");
     core.exportVariable("IssueNumber", number);
     const bookMetadata = await getBook(
-      { date, body, bookIsbn, providers },
+      { date, body, bookIsbn, providers, imgDir },
       fileName
     );
     await writeFile(fileName, bookMetadata);
